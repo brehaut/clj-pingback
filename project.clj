@@ -4,4 +4,4 @@
                  [org.clojure/clojure-contrib "1.2.0"]
                  [clj-http "0.1.2"]
                  [necessary-evil "1.0.0-SNAPSHOT"]]
-  :dev-dependancies [[marginalia "0.2.0"]])
+  :dev-dependencies [[marginalia "0.2.0"]])
