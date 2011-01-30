@@ -65,11 +65,24 @@
 
 ;; Pingback behaviour
 
-(defn test-source
-  "test-source attempts to connect to source-uri and determine if it contains
+(defn is-valid-pingback
+  "is-valid-pingback attempts to connect to source-uri and determine if it contains
    a reference to target-uri."
-  [source-ui target-uri]
-  (attempt-all [] false))
+  [source-uri target-uri]
+  (attempt-all [resp    (try (http/get source-uri {:throw-exceptions false})
+                             (catch java.net.UnknownHostException e
+                               (source-doesnt-exist source-uri)))
+                content (condp == (:status resp)
+                               200 (:body resp)
+                               401 (access-denied)
+                               403 (access-denied)
+                               404 (source-doesnt-exist source-uri)
+                               410 (source-doesnt-exist source-uri)
+                               (communication-failure))
+                _       (when-not (>= (.indexOf content target-uri) 0)
+                          (source-doesnt-reference-target source-uri
+                                                          target-uri))]
+               true))
 
 
 
@@ -77,8 +90,8 @@
   "pingback-endpoint provides the basic behaviour of the xml-rpc endpoint.
    Takes a function to do the actual work of handling the pingback."
   [handle-pingback]
-  (xml-rpc.end-point
+  (xml-rpc/end-point
    {:pingback.ping (fn [source-uri target-uri]
-                     (if (test-source source-uri target-uri)
-                       true
-                       (generic-failure)))}))
+                     (attempt-all [_ (is-valid-pingback source-uri target-uri)]
+                                  "Pingback successfully registered"))}))
+

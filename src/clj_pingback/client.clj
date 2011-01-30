@@ -10,7 +10,7 @@
   "Given a uri, discover-pingback-endpoint will return the XML-RPC endpoint for
    that resource or nil."
   [uri]
-  (let [response (http/get uri)]
+  (let [response (http/get uri {:throw-exceptions false})]
     (if-let [url (get-in response [:headers "x-pingback"])]
       url
       (when-let [[_ url] (re-find link-pattern (:body response))] url))))
