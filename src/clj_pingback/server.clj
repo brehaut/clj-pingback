@@ -74,8 +74,6 @@
                                (source-doesnt-exist source-uri)))
                 content (condp == (:status resp)
                                200 (:body resp)
-                               401 (access-denied)
-                               403 (access-denied)
                                404 (source-doesnt-exist source-uri)
                                410 (source-doesnt-exist source-uri)
                                (communication-failure))
