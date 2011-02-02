@@ -11,9 +11,8 @@
    that resource or nil."
   [uri]
   (let [response (http/get uri {:throw-exceptions false})]
-    (if-let [url (get-in response [:headers "x-pingback"])]
-      url
-      (when-let [[_ url] (re-find link-pattern (:body response))] url))))
+    (or (get-in response [:headers "x-pingback"])
+        (second (re-find link-pattern (:body response))))))
 
 (defn pingback-single
   "pingback-single will syncronously attempt a single pingback call,
@@ -31,6 +30,6 @@
 
    Each unique uri in the targets-uri seq is only sent one pingback."
   [source-uri target-uris]
-  (into {} (pmap (fn [t] [t (pingback-single source-uri t)])
+  (into {} (pmap (juxt identity (partial pingback-single source-uri))
                  (set target-uris))))
 
