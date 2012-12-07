@@ -1,9 +1,8 @@
 (ns clj-pingback.server
   "This namespace contains provides functions for creating a pingback endpoint.
    What this server does not provide is a one size fits all endpoint; ever site
-   has different rules about its resources and implementation. As a result this
-   library is only able to provide utilities to make it easier to implement the
-   end point.
+   has different rules about its resources and implementation. To implement an
+   endpoint you thus need to implement the Pingable protocol for your backend.
 
    In all the functions implemented in this api target-uri refers to a url on
    the local site that has been refered to in a remote document. source-uri
@@ -11,6 +10,33 @@
   (:require [necessary-evil.core :as xml-rpc]
             [clj-http.client :as http])
   (:use [necessary-evil.fault :only [attempt-all fault]]))
+
+
+(defprotocol Pingbackable
+  "This protocol defines the functions needed for various backends to plug into 
+   the pingback endpoint to support recieving pingbacks.
+
+   These functions may return necessary-evil.fault/fault's to indicated failure.
+   Faults codes specified by the pingback spec have constructor functions below."
+  
+  (target-uri-valid?
+    [this target-uri]
+    "target-uri-valid? is used to determine if this is something that can be pinged.
+     It uses the criteria of the looser fault code 0×0021 (target-isnt-pingback-enabled)
+     rather than the specific 'does not exist' fault code 0×0020 (target-doesnt-exist).
+
+     The pingback-handler will call this method and if the result is false, the
+     appropriate fault will be returned. If true is returned, then processing
+     will continue.
+
+     If you are able to satisfy the more strict conditions of the 0×0020
+     (target-doesnt-exist) fault you may return that instead.")
+
+  (register-pingback
+    [this source-uri target-uri]
+    "Register a pingback from the source-uri to the target-uri.
+     If the source-uri has already reigstered a pingback on target-uri you may opt
+     to return fault code 0×0030 (pingback-already-registered)."))
 
 
 ;; Base fault code functions
@@ -65,31 +91,38 @@
 
 ;; Pingback behaviour
 
-(defn is-valid-pingback
+(defn is-valid-pingback?
   "is-valid-pingback attempts to connect to source-uri and determine if it contains
    a reference to target-uri."
-  [source-uri target-uri]
+  [pingbackable source-uri target-uri]
   (attempt-all [resp    (try (http/get source-uri {:throw-exceptions false})
                              (catch java.net.UnknownHostException e
                                (source-doesnt-exist source-uri)))
+                
                 content (condp == (:status resp)
                                200 (:body resp)
                                404 (source-doesnt-exist source-uri)
                                410 (source-doesnt-exist source-uri)
                                (communication-failure))
+                
                 _       (when-not (>= (.indexOf content target-uri) 0)
                           (source-doesnt-reference-target source-uri
-                                                          target-uri))]
+                                                          target-uri))
+                
+                _       (when-not (target-uri-valid? pingbackable target-uri)
+                          (target-isnt-pingback-enabled target-uri))]
                true))
 
 
 
 (defn pingback-endpoint
   "pingback-endpoint provides the basic behaviour of the xml-rpc endpoint.
-   Takes a function to do the actual work of handling the pingback."
-  [handle-pingback]
+
+   pingbackable must implement the Pingbackable protocol."
+  [pingbackable]
   (xml-rpc/end-point
    {:pingback.ping (fn [source-uri target-uri]
-                     (attempt-all [_ (is-valid-pingback source-uri target-uri)]
+                     (attempt-all [_ (is-valid-pingback? pingbackable source-uri target-uri)
+                                   _ (register-pingback pingbackable source-uri target-uri)]
                                   "Pingback successfully registered"))}))
 
