@@ -36,7 +36,7 @@ Note that while pingback sends out the pings concurrently, the function blocks u
 
 Implementing Pingback in a web application is fairly straight forward. The `pingback-endpoint` handles all the generic behaviour. It takes an implementation of the `Pingbackable` protocol to delegate to for the specific details of sites backend. This creates an xml-rpc endpoint as a Ring handler function. Embed this into your application as you would any other Ring handler. See the necessary-evil documention for examples. 
 
-Consult the docstring on `clj-pingback.server/Pingbackable' for specifics on implementing 
+Consult the docstring on `clj-pingback.server/Pingbackable` for specifics on implementing 
 you own backend.
 
 The following is a trivial, but useless, example:
