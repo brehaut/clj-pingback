@@ -1,4 +1,4 @@
-(defproject clj-pingback "0.2.0-SNAPSHOT"
+(defproject clj-pingback "0.2.0"
   :description "An implementation of Pingback for clojure"
   :dependencies {org.clojure/clojure "1.4.0",
                  clj-http "0.5.8",
