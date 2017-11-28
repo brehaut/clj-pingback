@@ -1,4 +1,7 @@
+
 # clj-pingback
+
+> This project is abandoned
 
 An implementation of the [Pingback API](http://www.hixie.ch/specs/pingback/pingback-1.0) for clojure. This library is built ontop of [necessary-evil](https://github.com/brehaut/necessary-evil): this is particularly relevant if you wish to implement a server endpoint as some understanding of how `necessary-evil` interacts with the [Ring http library](https://github.com/ring-clojure/ring).
 
